@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0c10">
+<title>ล่ามสด · Live Interpreter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0c10;--bg2:#13151b;--card:#1a1d25;--ink:#f6f5f2;--mute:#8d919b;--line:rgba(255,255,255,.08);--acc:#ff4d5e;--acc2:#ff8a5c;--ok:#3ddc97;--fs:32px;
+  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Anuphan,"Noto Sans Thai",system-ui,sans-serif;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.app{position:fixed;inset:0;display:flex;flex-direction:column;background:
+  radial-gradient(90% 55% at 50% 0%,rgba(255,77,94,.10),transparent 70%),
+  radial-gradient(80% 50% at 50% 110%,rgba(255,138,92,.07),transparent 70%),var(--bg)}
+/* header */
+.hd{display:flex;align-items:center;gap:10px;padding:calc(var(--st) + 10px) 16px 10px}
+.brand{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.logo{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;flex:none;box-shadow:0 6px 18px -6px var(--acc)}
+.logo svg{width:20px;height:20px}
+.brand b{font-weight:600;font-size:17px;white-space:nowrap}
+.brand small{display:block;font-size:12px;color:var(--mute);line-height:1.2;white-space:nowrap}
+.pill{height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.pill svg{width:14px;height:14px;opacity:.7}
+.iconb{width:40px;height:40px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);display:grid;place-items:center;flex:none}
+.iconb svg{width:19px;height:19px}
+/* stage */
+.stage{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:0 clamp(18px,6vw,90px) 10px}
+.stage::before{content:"";position:absolute;inset:0 0 auto;height:42%;background:linear-gradient(var(--bg),rgba(11,12,16,0));z-index:1;pointer-events:none}
+.flow{font-size:var(--fs);line-height:1.38;font-weight:500;letter-spacing:.003em;white-space:pre-wrap;overflow-wrap:anywhere;max-width:1200px;margin:0 auto;width:100%}
+.flow p{margin:0 0 .55em;transition:opacity .8s}
+.flow p.old{opacity:.3}
+.flow .dr{color:var(--mute);font-weight:400}
+.flow .cur{display:inline-block;width:.1em;height:.95em;border-radius:2px;background:var(--acc);margin-left:.1em;vertical-align:-.1em;animation:bl 1s steps(2) infinite}
+@keyframes bl{50%{opacity:0}}
+/* welcome */
+.welcome{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:center;padding:0 clamp(22px,7vw,90px);max-width:760px;margin:0 auto}
+.welcome h1{font-size:clamp(34px,7vw,60px);line-height:1.06;margin:0 0 14px;font-weight:700;letter-spacing:-.01em}
+.welcome h1 em{font-style:normal;background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.welcome p{color:var(--mute);font-size:17px;margin:0 0 22px;max-width:30em}
+.steps{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.steps li{display:flex;gap:12px;align-items:flex-start;font-size:15px;color:#c9ccd3}
+.steps i{flex:none;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.07);display:grid;place-items:center;font-style:normal;font-size:13px;font-weight:600;color:var(--ink)}
+.warn{margin-top:18px;padding:12px 14px;border-radius:14px;background:rgba(255,77,94,.1);border:1px solid rgba(255,77,94,.3);font-size:14px;color:#ffd0d5}
+.warn button{margin-top:8px}
+/* dock */
+.dock{padding:6px 16px calc(var(--sb) + 14px);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;position:relative;z-index:3}
+.src{grid-column:1/-1;font-size:14px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl;text-align:center;min-height:1.5em;padding:0 8px}
+.src span{direction:ltr;unicode-bidi:plaintext}
+.side{display:flex;gap:8px}.side.r{justify-content:flex-end}
+.sbtn{height:46px;min-width:46px;padding:0 12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:500;white-space:nowrap}
+.sbtn svg{width:19px;height:19px}
+.mic{width:78px;height:78px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;display:grid;place-items:center;position:relative;box-shadow:0 12px 30px -10px var(--acc)}
+.mic svg{width:32px;height:32px}
+.mic.on{background:#fff;color:var(--acc)}
+.mic.on::before,.mic.on::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--acc);animation:ring 1.8s ease-out infinite}
+.mic.on::after{animation-delay:.9s}
+@keyframes ring{from{transform:scale(.92);opacity:.9}to{transform:scale(1.35);opacity:0}}
+.status{position:absolute;left:50%;top:-4px;transform:translate(-50%,-100%);font-size:12px;color:var(--mute);white-space:nowrap;display:flex;gap:6px;align-items:center}
+.status .d{width:7px;height:7px;border-radius:50%;background:#555}
+.status.live .d{background:var(--ok);box-shadow:0 0 0 3px rgba(61,220,151,.18)}
+.status.err .d{background:var(--acc)}
+@media(prefers-reduced-motion:reduce){.mic.on::before,.mic.on::after,.flow .cur{animation:none}}
+/* sheets */
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.6);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center}
+.sheet>div{background:var(--bg2);width:min(640px,100%);max-height:90vh;overflow:auto;border-radius:24px 24px 0 0;padding:10px 20px calc(var(--sb) + 26px);border:1px solid var(--line);border-bottom:0}
+.grab{width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.18);margin:0 auto 14px}
+.sheet h2{font-size:21px;margin:0 0 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:600}
+.grp{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;display:grid;gap:10px}
+.grp>b{font-size:13px;color:var(--mute);font-weight:500}
+.inp{width:100%;min-height:46px;border:1px solid var(--line);border-radius:12px;background:#0e1015;padding:10px 12px;font-size:16px}
+textarea.inp{min-height:92px;resize:vertical;line-height:1.45}
+.segc{display:flex;background:#0e1015;border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+.segc button{flex:1;min-height:40px;border:0;border-radius:9px;background:transparent;font-size:14px;font-weight:500;color:var(--mute)}
+.segc button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.note{font-size:13px;color:var(--mute);margin:0}
+.tg{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:40px;font-size:15px}
+.sw{appearance:none;-webkit-appearance:none;width:48px;height:28px;border-radius:999px;background:#2b2f39;position:relative;flex:none;transition:background .2s;margin:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .2s}
+.sw:checked{background:var(--ok)}.sw:checked::after{transform:translateX(20px)}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.btn{min-height:46px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);font-weight:500;font-size:15px}
+.btn.pri{background:linear-gradient(135deg,var(--acc),var(--acc2));border:0;color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.log{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.log li{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.log time{font-size:12px;color:var(--mute)}
+.log .o{color:var(--mute);font-size:14px}
+.toast{position:fixed;left:50%;top:calc(var(--st) + 66px);transform:translateX(-50%);background:#2a1418;border:1px solid rgba(255,77,94,.4);color:#ffd0d5;padding:10px 14px;border-radius:12px;font-size:14px;z-index:30;max-width:92vw}
+.hidden{display:none!important}
+@media(min-width:900px){:root{--fs:46px}.welcome{padding-left:8vw}}
+@media(orientation:landscape) and (max-height:500px){.welcome h1{font-size:30px}.welcome p,.steps{display:none}.mic{width:62px;height:62px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hd">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4 9v6M8 6v12M12 9v6M16 4v16M20 9v6"/></svg></div>
+      <div><b>ล่ามสด</b><small id="clock">Live Interpreter</small></div>
+    </div>
+    <button class="pill" id="dirB" aria-label="สลับภาษา"><span id="dirT">EN → ไทย</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg></button>
+    <button class="iconb" id="setB" aria-label="ตั้งค่า"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </header>
+
+  <main class="stage" aria-live="polite">
+    <section class="welcome" id="welcome">
+      <h1>ล่าม AI<br><em>แปลสดทันใจ</em></h1>
+      <p>กดปุ่มไมค์ แล้วให้ผู้บรรยายพูดตามปกติ ระบบจะแปลทีละวลีแบบล่ามมืออาชีพ และขึ้นจอให้ผู้ฟังอ่านได้ทันที</p>
+      <ol class="steps">
+        <li><i>1</i><span>เลือกภาษาที่มุมขวาบน (EN → ไทย หรือ ไทย → EN)</span></li>
+        <li><i>2</i><span>ใส่หัวข้อและศัพท์เฉพาะใน ⚙︎ ตั้งค่า เพื่อให้แปลแม่นขึ้น</span></li>
+        <li><i>3</i><span>สะท้อนจอขึ้นโปรเจกเตอร์ แล้วกดปุ่มไมค์ด้านล่าง</span></li>
+      </ol>
+      <div class="warn hidden" id="warn"></div>
+    </section>
+    <div class="flow" id="flow"></div>
+  </main>
+
+  <footer class="dock">
+    <div class="src" id="src"><span id="srcT"></span></div>
+    <div class="side">
+      <button class="sbtn" id="logB" aria-label="บันทึกการบรรยาย"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>
+    </div>
+    <div style="position:relative">
+      <div class="status" id="status"><span class="d"></span><span id="statusT">พร้อม</span></div>
+      <button class="mic" id="mic" aria-label="เริ่มแปล"><svg id="micI" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    </div>
+    <div class="side r">
+      <button class="sbtn" id="fsDn" aria-label="ตัวเล็กลง">A−</button>
+      <button class="sbtn" id="fsUp" aria-label="ตัวใหญ่ขึ้น">A+</button>
+    </div>
+  </footer>
+</div>
+
+<div class="sheet hidden" id="setS"><div>
+  <div class="grab"></div>
+  <h2>ตั้งค่า <button class="btn" data-close>เสร็จ</button></h2>
+  <div class="grp"><b>ระบบแปล</b>
+    <div class="segc" id="eng"><button data-v="free">ฟรี</button><button data-v="claude">Claude (ล่ามมืออาชีพ)</button></div>
+    <p class="note" id="engNote"></p>
+  </div>
+  <div class="grp" id="keyG"><b>API KEY ของ ANTHROPIC</b>
+    <input class="inp" id="key" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+    <div class="row"><button class="btn" id="testK">ทดสอบการเชื่อมต่อ</button><span class="note" id="keyMsg" style="align-self:center"></span></div>
+    <p class="note">เก็บไว้ในเครื่องนี้เท่านั้น ส่งตรงไปที่ Anthropic · สร้าง key ได้ที่ console.anthropic.com</p>
+  </div>
+  <div class="grp" id="paceG"><b>จังหวะการแปล</b>
+    <div class="segc" id="pace"><button data-v="fast">ไวสุด</button><button data-v="bal">ล่ามมาตรฐาน</button><button data-v="smooth">สละสลวย</button></div>
+    <p class="note">ล่ามมาตรฐานตามหลังผู้พูดราว 1–2 วินาที · สละสลวยใช้โมเดลที่เก่งกว่า ภาษาสวยกว่าแต่ช้ากว่าเล็กน้อย</p>
+  </div>
+  <div class="grp" id="ctxG"><b>บริบทของงาน (เฉพาะโหมด Claude)</b>
+    <input class="inp" id="topic" placeholder="หัวข้อสัมมนา เช่น Security Awareness สำหรับบุคลากร">
+    <textarea class="inp" id="gloss" placeholder="ศัพท์เฉพาะ บรรทัดละคำ&#10;Awareness = ความตระหนักรู้&#10;Phishing = ฟิชชิง"></textarea>
+  </div>
+  <div class="grp"><b>การแสดงผล</b>
+    <label class="tg">ขนาดตัวอักษร<input type="range" id="fs" min="20" max="110" style="max-width:55%"></label>
+    <label class="tg">แสดงข้อความต้นฉบับด้านล่าง<input type="checkbox" class="sw" id="showO" checked></label>
+    <label class="tg">แสดงคำแปลล่วงหน้า (ตัวจาง)<input type="checkbox" class="sw" id="showD" checked></label>
+    <label class="tg">เปิดหน้าจอค้างไว้ระหว่างแปล<input type="checkbox" class="sw" id="wake" checked></label>
+  </div>
+  <div class="grp"><b>แชร์ให้คนอื่นใช้</b>
+    <p class="note">ส่งลิงก์นี้ให้ใครก็ได้ เปิดแล้วใช้โหมดฟรีได้ทันที ไม่ต้องสมัครอะไร</p>
+    <div class="row"><button class="btn pri" id="shareP">คัดลอกลิงก์แอป</button><button class="btn" id="shareK">ลิงก์พร้อม API key</button></div>
+    <p class="note">"ลิงก์พร้อม API key" ให้คนอื่นใช้โหมด Claude ด้วยเครดิตของคุณ ส่งเฉพาะคนที่ไว้ใจ</p>
+  </div>
+  <div class="grp"><b>อื่น ๆ</b><div class="row"><button class="btn" id="clr">ล้างคำแปลทั้งหมด</button><button class="btn" id="forget">ลบ key ออกจากเครื่องนี้</button></div></div>
+</div></div>
+
+<div class="sheet hidden" id="logS"><div>
+  <div class="grab"></div>
+  <h2>บันทึกการบรรยาย <button class="btn" data-close>ปิด</button></h2>
+  <div class="row" style="margin-bottom:12px"><button class="btn" id="cpT">คัดลอกคำแปล</button><button class="btn" id="cpB">คัดลอกสองภาษา</button></div>
+  <ol class="log" id="log"></ol>
+</div></div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script>
+{
+const $=id=>document.getElementById(id);
+const LS={get(k,d){try{const v=localStorage.getItem('lam-'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('lam-'+k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- key from share link ---------- */
+(()=>{const m=location.hash.match(/k=([^&]+)/);if(m){LS.set('key',decodeURIComponent(m[1]));history.replaceState(null,'',location.pathname+location.search)}})();
+
+/* ---------- state ---------- */
+let engine=LS.get('engine','free'),key=LS.get('key',''),dir=LS.get('dir','en-th'),pace=LS.get('pace','bal'),segs=LS.get('segs',[]),fin=LS.get('fin','');
+let running=false,rec=null,base='',sess='',off=0,lastInput=0,busy=false,held=null,draft='',stream='',lastPrev='',prevT=0,prevCtrl=null,startAt=0,clockT=null,wakeLock=null,shown=fin.length,raf=0,restarts=0;
+const PACE={fast:{pause:550,min:3,max:10,force:1800,model:'claude-haiku-5-5'},bal:{pause:800,min:4,max:15,force:2400,model:'claude-haiku-5-5'},smooth:{pause:1300,min:6,max:26,force:3200,model:'claude-sonnet-5-5'}};
+const PREVIEW_MODEL='claude-haiku-5-5';
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+
+/* ---------- ui helpers ---------- */
+function toast(t,ms=4000){const el=$('toast');el.textContent=t;el.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.add('hidden'),ms)}
+function status(t,cls){const s=$('status');s.className='status'+(cls?' '+cls:'');$('statusT').textContent=t}
+const lang=()=>dir==='en-th'?'Thai':'English';
+const srLang=()=>dir==='en-th'?'en-US':'th-TH';
+function setDir(d){dir=d;LS.set('dir',d);$('dirT').textContent=d==='en-th'?'EN → ไทย':'ไทย → EN';if(running){stopRec(true);setTimeout(startRec,300)}}
+$('dirB').onclick=()=>setDir(dir==='en-th'?'th-en':'en-th');
+setDir(dir);
+const fsEl=$('fs');fsEl.value=LS.get('fs',innerWidth>=900?46:32);
+const setFs=()=>{document.documentElement.style.setProperty('--fs',fsEl.value+'px');LS.set('fs',+fsEl.value)};setFs();
+fsEl.oninput=setFs;$('fsUp').onclick=()=>{fsEl.value=+fsEl.value+4;setFs()};$('fsDn').onclick=()=>{fsEl.value=+fsEl.value-4;setFs()};
+const markPace=()=>document.querySelectorAll('#pace button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===pace));
+document.querySelectorAll('#pace button').forEach(b=>b.onclick=()=>{pace=b.dataset.v;LS.set('pace',pace);markPace()});markPace();
+['topic','gloss'].forEach(k=>{$(k).value=LS.get(k,'');$(k).addEventListener('input',()=>LS.set(k,$(k).value))});
+['showO','showD','wake'].forEach(k=>{$(k).checked=LS.get(k,true);$(k).addEventListener('change',()=>{LS.set(k,$(k).checked);render()})});
+$('key').value=key;$('key').addEventListener('change',()=>{key=$('key').value.trim();LS.set('key',key);checkReady()});
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('.sheet').classList.add('hidden'));
+document.querySelectorAll('.sheet').forEach(s=>s.addEventListener('click',e=>{if(e.target===s)s.classList.add('hidden')}));
+$('setB').onclick=()=>$('setS').classList.remove('hidden');
+$('logB').onclick=()=>{renderLog();$('logS').classList.remove('hidden')};
+const copy=async(t,b)=>{try{await navigator.clipboard.writeText(t);const o=b.textContent;b.textContent='คัดลอกแล้ว ✓';setTimeout(()=>b.textContent=o,1600)}catch(e){toast('คัดลอกไม่ได้ในเบราว์เซอร์นี้')}};
+$('cpT').onclick=e=>copy(segs.map(s=>s.t).join('\n'),e.currentTarget);
+$('cpB').onclick=e=>copy(segs.map(s=>`[${s.at}] ${s.o}\n${s.t}`).join('\n\n'),e.currentTarget);
+$('shareK').onclick=e=>{if(!key){toast('ใส่ API key ก่อน');return}copy(location.origin+location.pathname+'#k='+encodeURIComponent(key),e.currentTarget)};
+$('shareP').onclick=e=>copy(location.origin+location.pathname,e.currentTarget);
+$('clr').onclick=()=>{segs=[];fin='';shown=0;stream='';draft='';LS.set('segs',[]);LS.set('fin','');render();toast('ล้างแล้ว',1500)};
+$('forget').onclick=()=>{key='';$('key').value='';LS.set('key','');checkReady()};
+
+const markEng=()=>{document.querySelectorAll('#eng button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===engine));
+  const c=engine==='claude';['keyG','paceG','ctxG'].forEach(id=>$(id).classList.toggle('hidden',!c));
+  $('engNote').textContent=c?'แปลแบบล่ามมืออาชีพ ต่อเนื่องเป็นธรรมชาติ ใช้ API key (มีค่าใช้จ่ายเล็กน้อยตามการใช้งาน)':'ใช้งานฟรี ไม่ต้องสมัคร แปลทีละประโยคเมื่อผู้พูดเว้นจังหวะ ความสละสลวยน้อยกว่าโหมด Claude';checkReady()};
+document.querySelectorAll('#eng button').forEach(b=>b.onclick=()=>{engine=b.dataset.v;LS.set('engine',engine);markEng()});
+function checkReady(){
+  const w=$('warn');let msg='';
+  if(!SR)msg='เบราว์เซอร์นี้ไม่รองรับการฟังเสียง — บน iPhone ให้เปิดใน Safari, บน Android/คอมพิวเตอร์ให้ใช้ Chrome หรือ Edge';
+  else if(engine==='claude'&&!key)msg='ยังไม่มี API key — กด ⚙︎ ตั้งค่า แล้วใส่ key ของ Anthropic ก่อนเริ่ม';
+  else if(location.protocol==='file:')msg='เปิดจากไฟล์ในเครื่อง ไมค์อาจใช้ไม่ได้ — อัปโหลดขึ้นเว็บ (https) ก่อนใช้งานจริง';
+  w.textContent=msg;w.classList.toggle('hidden',!msg);
+  if(engine==='claude'&&!key&&SR){const b=document.createElement('button');b.className='btn pri';b.textContent='ใส่ API key';b.onclick=()=>$('setS').classList.remove('hidden');w.append(document.createElement('br'),b)}
+}
+markEng();
+
+/* ---------- free translation (Google public endpoint) ---------- */
+async function gtx(text,signal){
+  const [sl,tl]=dir==='en-th'?['en','th']:['th','en'];
+  const r=await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl='+sl+'&tl='+tl+'&q='+encodeURIComponent(text),{signal});
+  if(!r.ok)throw{status:r.status,message:'free'};
+  const j=await r.json();return (j[0]||[]).map(x=>x[0]).join('').trim();
+}
+
+/* ---------- Claude API (streaming) ---------- */
+async function ask(prompt,{model,max=500,signal,onText}={}){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal,headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model,max_tokens:max,stream:true,temperature:0.3,messages:[{role:'user',content:prompt}]})});
+  if(!r.ok){let m='';try{m=(await r.json()).error?.message||''}catch(e){}throw{status:r.status,message:m}}
+  const rd=r.body.getReader(),dec=new TextDecoder();let buf='',out='';
+  for(;;){
+    const {done,value}=await rd.read();if(done)break;
+    buf+=dec.decode(value,{stream:true});let i;
+    while((i=buf.indexOf('\n'))>=0){
+      const line=buf.slice(0,i).trim();buf=buf.slice(i+1);
+      if(!line.startsWith('data:'))continue;
+      let j;try{j=JSON.parse(line.slice(5))}catch(e){continue}
+      if(j.type==='content_block_delta'&&j.delta&&typeof j.delta.text==='string'){out+=j.delta.text;onText&&onText(out)}
+      else if(j.type==='error')throw{status:0,message:j.error?.message||'error'};
+    }
+  }
+  return out;
+}
+function apiErr(e){
+  if(e?.name==='AbortError')return;
+  const s=e?.status;
+  if(s===401)toast('API key ไม่ถูกต้อง — ตรวจใน ⚙︎ ตั้งค่า');
+  else if(s===429)toast('เรียกใช้ถี่เกินไป ระบบจะลองใหม่อัตโนมัติ',2500);
+  else if(s===529||s===503)toast('เซิร์ฟเวอร์แปลหนาแน่น กำลังลองใหม่…',2500);
+  else if(s===400&&/credit|balance/i.test(e.message||''))toast('เครดิต API หมด — เติมที่ console.anthropic.com');
+  else if(s===404)toast('ไม่พบโมเดล — แจ้งผู้ดูแลแอป ('+(e.message||'404')+')');
+  else toast('เชื่อมต่อการแปลไม่ได้ — ตรวจอินเทอร์เน็ต',2500);
+}
+$('testK').onclick=async()=>{key=$('key').value.trim();LS.set('key',key);checkReady();$('keyMsg').textContent='กำลังทดสอบ…';
+  try{const t=await ask('Translate to Thai, output only the translation: Good morning, everyone.',{model:PREVIEW_MODEL,max:40});$('keyMsg').textContent='✓ ใช้ได้: '+t.trim()}catch(e){$('keyMsg').textContent='✗ ใช้ไม่ได้ ('+(e.status||'')+' '+(e.message||'')+')'}};
+
+/* ---------- interpreter ---------- */
+const MARK='⟦REST⟧';
+const isThai=t=>/[฀-๿]/.test(t);
+const words=t=>{t=t.trim();if(!t)return 0;return isThai(t)?Math.ceil(t.replace(/\s/g,'').length/6):t.split(/\s+/).length};
+const ts=()=>{const s=startAt?Math.floor((Date.now()-startAt)/1000):0;return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+const heard=()=>base+sess;
+const pending=()=>heard().slice(off);
+function context(){
+  const g=$('gloss').value.trim(),tp=$('topic').value.trim(),src=segs.slice(-3).map(s=>s.o).join(' … '),prev=fin.replace(/\s+/g,' ').slice(-350);
+  return `${tp?`SEMINAR TOPIC: ${tp}\n`:''}${g?`GLOSSARY (always use these renderings):\n${g}\n`:''}${src?`RECENT SOURCE (already interpreted): ${src}\n`:''}${prev?`YOUR INTERPRETATION SO FAR (the audience is reading this; continue from it): …${prev}\n`:''}`;
+}
+const STYLE=L=>`You are a top simultaneous conference interpreter producing live ${L} subtitles for a seminar audience.
+- Work like a real interpreter: chunk by meaning (clause by clause), keep a short ear-voice span, render meaning, never word-for-word.
+- Your output is APPENDED to "YOUR INTERPRETATION SO FAR", so it must continue it seamlessly: finish a sentence started earlier or begin a new one; never repeat what was already said; together it must read as one fluent, natural ${L} text.
+- The source is raw speech recognition: little punctuation, fragments, false starts, repetitions, misheard words. Merge fragments, drop fillers and self-corrections, silently fix clearly misheard words from context.
+- Keep numbers, names, products and technical terms exact; follow the glossary.
+- ${L==='Thai'?'Natural, polished Thai as a skilled Thai interpreter would say it on stage (กึ่งทางการ อ่านลื่น). No ครับ/ค่ะ. Use Thai sentence structure, not English word order.':'Clear, natural, professional English.'}
+- Concise like subtitles. Never add facts or commentary.`;
+
+async function interpretFree(force){
+  const tail=pending();if(!tail.trim()||busy)return;
+  busy=true;if(prevCtrl){prevCtrl.abort();prevCtrl=null}
+  try{
+    const tr=await gtx(tail.trim());
+    off+=tail.length;held=null;
+    if(tr){fin+=(fin&&!/\s$/.test(fin)?' ':'')+tr;segs.push({o:tail.trim(),t:tr,at:ts()});segs=segs.slice(-500);LS.set('segs',segs)}
+    if(force&&fin&&!/\n\n$/.test(fin))fin+='\n\n';
+    fin=fin.slice(-8000);LS.set('fin',fin);
+  }catch(e){if(e?.name!=='AbortError'){toast(e?.status===429?'ระบบแปลฟรีถูกจำกัดชั่วคราว รอสักครู่…':'เชื่อมต่อการแปลไม่ได้ — ตรวจอินเทอร์เน็ต',2500);await new Promise(r=>setTimeout(r,2500))}}
+  draft='';lastPrev='';busy=false;render();
+}
+async function interpret(force){
+  if(engine==='free')return interpretFree(force);
+  const tail=pending();if(!tail.trim()||busy||!key)return;
+  busy=true;if(prevCtrl){prevCtrl.abort();prevCtrl=null}
+  const L=lang(),P=PACE[pace];
+  const p=`${STYLE(L)}
+
+${context()}
+NEW SPEECH (raw, continues the source):
+<speech>${tail.trim()}</speech>
+
+${force?'The speaker has paused: interpret ALL of NEW SPEECH and finish the thought.':'Interpret NEW SPEECH up to the end of the last meaningful chunk (a clause or phrase you can render naturally now). If the very end is a fragment you cannot yet render well, hold it back.'}
+Output format: first the ${L} continuation only. Then a new line with ${MARK} followed by the held-back ending copied EXACTLY from NEW SPEECH (nothing after ${MARK} if you held nothing back).`;
+  const pick=t=>t.split(MARK)[0].replace(/^["“\s]+|["”\s]+$/g,'');
+  try{
+    const out=await ask(p,{model:P.model,onText:t=>{stream=pick(t);draft='';render()}});
+    const tr=pick(out);let rest=force?'':(out.split(MARK)[1]||'').trim().replace(/^["“]|["”]$/g,'');
+    let consumed=tail.length;
+    if(rest){const i=tail.toLowerCase().lastIndexOf(rest.toLowerCase());if(i>=0)consumed=i}
+    held=consumed>0?null:tail;
+    if(consumed>0){
+      off+=consumed;
+      if(tr){fin+=(fin&&!/\s$/.test(fin)?' ':'')+tr;segs.push({o:tail.slice(0,consumed).trim(),t:tr,at:ts()});segs=segs.slice(-500);LS.set('segs',segs)}
+    }
+    if(force&&fin&&!/\n\n$/.test(fin))fin+='\n\n';
+    fin=fin.slice(-8000);LS.set('fin',fin);
+  }catch(e){apiErr(e);if(e?.status===429||e?.status>=500)await new Promise(r=>setTimeout(r,2500))}
+  stream='';draft='';lastPrev='';busy=false;render();
+}
+async function preview(){
+  const t=(pending()).trim();if(!t||t===lastPrev||(engine==='claude'&&!key)||!$('showD').checked||busy)return;
+  lastPrev=t;prevT=Date.now();
+  if(prevCtrl)prevCtrl.abort();prevCtrl=new AbortController();const my=prevCtrl;
+  if(engine==='free'){try{const x=await gtx(t,my.signal);if(my===prevCtrl&&!busy){draft=x;render()}}catch(e){}return}
+  try{
+    const out=await ask(`${STYLE(lang())}\n\n${context()}\nThe speaker is mid-thought. Give a quick tentative ${lang()} continuation for what has been said so far (meaning only, short). Output only that text.\n<speech>${t}</speech>`,{model:PREVIEW_MODEL,max:160,signal:my.signal,onText:x=>{if(my===prevCtrl&&!busy){draft=x;render()}}});
+    if(my===prevCtrl&&!busy){draft=out.trim();render()}
+  }catch(e){}
+}
+setInterval(()=>{
+  const now=Date.now(),idle=now-lastInput,P=PACE[pace],t=pending(),w=words(t);
+  if(!t.trim()||busy)return;
+  if(engine==='free'){
+    if(idle>=1800)interpret(true);
+    else if((idle>=900&&w>=3)||w>=28)interpret(false);
+    else if(now-prevT>1200&&w>=2)preview();
+    return;
+  }
+  if(idle>=P.force)interpret(true);
+  else if(t!==held&&((idle>=P.pause&&w>=P.min)||w>=P.max))interpret(false);
+  else if(now-prevT>900&&w>=2)preview();
+},250);
+
+/* ---------- display ---------- */
+function visible(t){if(t.length<=900)return t;const c=t.slice(-900),i=c.search(/\s/);return i>0&&i<80?c.slice(i+1):c}
+function paint(){
+  raf=0;
+  const target=fin+(stream?(fin&&!/\s$/.test(fin)?' ':'')+stream:'');
+  if(shown>target.length)shown=target.length;
+  const gap=target.length-shown;if(gap>0)shown+=Math.max(1,Math.ceil(gap/14));
+  const flow=$('flow');flow.textContent='';
+  const paras=visible(target.slice(0,shown)).replace(/\n\n$/,'').split(/\n\n+/);
+  paras.forEach((t,i)=>{
+    const p=document.createElement('p');const last=i===paras.length-1;if(!last)p.className='old';p.textContent=t;
+    if(last){
+      if($('showD').checked&&draft&&shown>=target.length){const d=document.createElement('span');d.className='dr';d.textContent=(t&&!/\s$/.test(t)?' ':'')+draft;p.append(d)}
+      if(running||busy||gap>0){const c=document.createElement('span');c.className='cur';p.append(c)}
+    }
+    flow.append(p);
+  });
+  $('srcT').textContent=$('showO').checked?pending().slice(-140):'';
+  $('welcome').classList.toggle('hidden',!!(fin.trim()||stream||draft||running));
+  if(shown<target.length)raf=requestAnimationFrame(paint);
+}
+function render(){if(!raf)raf=requestAnimationFrame(paint)}
+function renderLog(){
+  const ol=$('log');ol.textContent='';
+  if(!segs.length){const li=document.createElement('li');li.className='note';li.textContent='ยังไม่มีข้อความ';ol.append(li);return}
+  segs.forEach(s=>{const li=document.createElement('li'),tm=document.createElement('time'),o=document.createElement('div'),t=document.createElement('div');tm.textContent=s.at;o.className='o';o.textContent=s.o;t.textContent=s.t;li.append(tm,o,t);ol.append(li)});
+}
+
+/* ---------- microphone (Web Speech API) ---------- */
+function setMic(){const m=$('mic');m.classList.toggle('on',running);m.setAttribute('aria-label',running?'หยุดแปล':'เริ่มแปล');
+  $('micI').innerHTML=running?'<rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor" stroke="none"/>':'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>'}
+async function lockScreen(on){try{if(on&&$('wake').checked&&navigator.wakeLock){wakeLock=await navigator.wakeLock.request('screen')}else if(!on&&wakeLock){await wakeLock.release();wakeLock=null}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&running)lockScreen(true)});
+function newRec(){
+  const r=new SR();r.lang=srLang();r.continuous=true;r.interimResults=true;r.maxAlternatives=1;
+  r.onresult=e=>{let t='';for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript+(e.results[i].isFinal?' ':'');
+    if(t!==sess){if(heard().length<off){} sess=t;lastInput=Date.now();if(heard().length<off)off=heard().length;render()}
+    restarts=0;status('กำลังฟัง','live')};
+  r.onerror=e=>{
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){running=false;setMic();status('ไม่ได้รับอนุญาตไมค์','err');toast(/iPhone|iPad/.test(navigator.userAgent)?'อนุญาตไมค์: การตั้งค่า → Safari → ไมโครโฟน และเปิด "Siri และการป้อนตามคำบอก"':'กรุณาอนุญาตการใช้ไมโครโฟนในเบราว์เซอร์',7000)}
+    else if(e.error==='no-speech'){status('รอเสียงพูด…','live')}
+    else if(e.error==='network'){status('เครือข่ายขัดข้อง','err')}
+  };
+  r.onend=()=>{
+    base+=sess.replace(/\s*$/,' ');sess='';
+    if(running){
+      if(++restarts>8){running=false;setMic();status('ไมค์หยุด — กดเพื่อเริ่มใหม่','err');return}
+      setTimeout(()=>{if(!running)return;try{rec=newRec();rec.start()}catch(err){running=false;setMic();status('กดไมค์เพื่อฟังต่อ','err')}},restarts>2?600:120);
+    }else status('หยุดแล้ว');
+  };
+  return r;
+}
+function startRec(){
+  if(!SR){checkReady();toast('เบราว์เซอร์นี้ไม่รองรับไมค์ — ใช้ Safari (iPhone) หรือ Chrome');return}
+  if(engine==='claude'&&!key){$('setS').classList.remove('hidden');toast('ใส่ API key ก่อน หรือเปลี่ยนเป็นโหมดฟรี');return}
+  running=true;restarts=0;setMic();status('กำลังเปิดไมค์…','live');render();
+  if(!startAt){startAt=Date.now()}clearInterval(clockT);clockT=setInterval(()=>$('clock').textContent='LIVE · '+ts(),1000);
+  try{rec=newRec();rec.start()}catch(e){running=false;setMic();status('เปิดไมค์ไม่ได้','err')}
+  lockScreen(true);
+}
+function stopRec(silent){running=false;setMic();try{rec&&rec.stop()}catch(e){}lockScreen(false);if(!silent)setTimeout(()=>{if(pending().trim())interpret(true)},500)}
+$('mic').onclick=()=>running?stopRec():startRec();
+document.addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select'))return;if(e.code==='Space'){e.preventDefault();$('mic').click()}});
+
+setMic();render();
+}
+</script>
+</body>
+</html>
